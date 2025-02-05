@@ -1,0 +1,124 @@
+CREATE TABLE `user`(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `first_name` VARCHAR(255) NOT NULL,
+    `last_name` VARCHAR(255) NOT NULL,
+    `email` VARCHAR(255) NOT NULL,
+    `username` VARCHAR(255) NOT NULL,
+    `password` VARCHAR(255) NOT NULL,
+    `mobile_number` INT NOT NULL,
+    `profile_picture` VARCHAR(255) NOT NULL,
+    `profile_description` VARCHAR(255) NOT NULL,
+    `country` VARCHAR(255) NOT NULL,
+    `status` ENUM('') NOT NULL,
+    `user_type` ENUM('') NOT NULL,
+    `otp` INT NOT NULL,
+    `forget_otp` INT NOT NULL,
+    `otp_timestamp` TIMESTAMP NOT NULL,
+    `created_at` TIMESTAMP NOT NULL,
+    `updated_at` TIMESTAMP NOT NULL
+);
+CREATE TABLE `categories`(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(255) NOT NULL,
+    `image` VARCHAR(255) NOT NULL
+);
+CREATE TABLE `level`(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `userId` INT NOT NULL,
+    `name` VARCHAR(255) NOT NULL,
+    `type` ENUM('') NOT NULL
+);
+CREATE TABLE `puzzle`(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(255) NOT NULL,
+    `description` VARCHAR(255) NOT NULL,
+    `type` ENUM('') NOT NULL
+);
+CREATE TABLE `quize`(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(255) NOT NULL,
+    `description` VARCHAR(255) NOT NULL,
+    `type` ENUM('') NOT NULL
+);
+CREATE TABLE `achievements`(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `userId` INT NOT NULL,
+    `name` VARCHAR(255) NOT NULL,
+    `description` VARCHAR(255) NOT NULL,
+    `image` VARCHAR(255) NOT NULL,
+    `complete_quize_id` INT NOT NULL,
+    `complete_puzzle_id` INT NOT NULL
+);
+CREATE TABLE `leaderboard`(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `userId` INT NOT NULL,
+    `score` INT NOT NULL
+);
+CREATE TABLE `quize_questions`(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `question` VARCHAR(255) NULL,
+    `quize_id` INT NOT NULL
+);
+CREATE TABLE `quize_answer`(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `quize_questions_id` VARCHAR(255) NOT NULL,
+    `answer` VARCHAR(255) NOT NULL
+);
+CREATE TABLE `puzzle_questions`(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `answer` VARCHAR(255) NOT NULL,
+    `puzzle_id` INT NOT NULL
+);
+CREATE TABLE `puzzle_answer`(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `puzzle_questions_id` VARCHAR(255) NOT NULL,
+    `new_column` VARCHAR(255) NOT NULL
+);
+CREATE TABLE `complete_puzzle`(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `userId` INT NOT NULL,
+    `puzzle_id` INT NOT NULL,
+    `status` ENUM('') NOT NULL,
+    `level_id` INT NOT NULL,
+    `categories_id` BIGINT NOT NULL
+);
+CREATE TABLE `complete_quize`(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `userId` INT NOT NULL,
+    `quize_id` INT NOT NULL,
+    `status` ENUM('') NOT NULL,
+    `level_id` INT NOT NULL,
+    `categories_id` INT NOT NULL
+);
+ALTER TABLE
+    `puzzle_questions` ADD CONSTRAINT `puzzle_questions_puzzle_id_foreign` FOREIGN KEY(`puzzle_id`) REFERENCES `puzzle`(`id`);
+ALTER TABLE
+    `complete_quize` ADD CONSTRAINT `complete_quize_userid_foreign` FOREIGN KEY(`userId`) REFERENCES `user`(`id`);
+ALTER TABLE
+    `complete_puzzle` ADD CONSTRAINT `complete_puzzle_puzzle_id_foreign` FOREIGN KEY(`puzzle_id`) REFERENCES `puzzle`(`id`);
+ALTER TABLE
+    `complete_quize` ADD CONSTRAINT `complete_quize_quize_id_foreign` FOREIGN KEY(`quize_id`) REFERENCES `quize`(`id`);
+ALTER TABLE
+    `complete_quize` ADD CONSTRAINT `complete_quize_categories_id_foreign` FOREIGN KEY(`categories_id`) REFERENCES `categories`(`id`);
+ALTER TABLE
+    `quize_questions` ADD CONSTRAINT `quize_questions_quize_id_foreign` FOREIGN KEY(`quize_id`) REFERENCES `quize`(`id`);
+ALTER TABLE
+    `user` ADD CONSTRAINT `user_id_foreign` FOREIGN KEY(`id`) REFERENCES `leaderboard`(`id`);
+ALTER TABLE
+    `complete_puzzle` ADD CONSTRAINT `complete_puzzle_categories_id_foreign` FOREIGN KEY(`categories_id`) REFERENCES `categories`(`id`);
+ALTER TABLE
+    `complete_puzzle` ADD CONSTRAINT `complete_puzzle_level_id_foreign` FOREIGN KEY(`level_id`) REFERENCES `level`(`id`);
+ALTER TABLE
+    `puzzle_answer` ADD CONSTRAINT `puzzle_answer_puzzle_questions_id_foreign` FOREIGN KEY(`puzzle_questions_id`) REFERENCES `puzzle_questions`(`id`);
+ALTER TABLE
+    `quize_answer` ADD CONSTRAINT `quize_answer_quize_questions_id_foreign` FOREIGN KEY(`quize_questions_id`) REFERENCES `quize_questions`(`id`);
+ALTER TABLE
+    `complete_quize` ADD CONSTRAINT `complete_quize_level_id_foreign` FOREIGN KEY(`level_id`) REFERENCES `level`(`id`);
+ALTER TABLE
+    `achievements` ADD CONSTRAINT `achievements_complete_puzzle_id_foreign` FOREIGN KEY(`complete_puzzle_id`) REFERENCES `complete_quize`(`id`);
+ALTER TABLE
+    `achievements` ADD CONSTRAINT `achievements_userid_foreign` FOREIGN KEY(`userId`) REFERENCES `user`(`id`);
+ALTER TABLE
+    `complete_puzzle` ADD CONSTRAINT `complete_puzzle_userid_foreign` FOREIGN KEY(`userId`) REFERENCES `user`(`id`);
+ALTER TABLE
+    `achievements` ADD CONSTRAINT `achievements_complete_quize_id_foreign` FOREIGN KEY(`complete_quize_id`) REFERENCES `complete_puzzle`(`id`);
