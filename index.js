@@ -16,6 +16,8 @@ import userController from "./controllers/user.js";
 import userRoutes from "./routes/user.js";
 import levelRoutes from "./routes/level.js";
 import category from "./routes/category.js";
+import quize from "./routes/quize.js";
+import puzzle from "./routes/puzzle.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -67,6 +69,8 @@ app.get('/auth/google/callback',
 app.use("/api/user", userRoutes);
 app.use("/api/level", levelRoutes);
 app.use("/api/category", category);
+app.use("/api/quize", quize);
+app.use("/api/puzzle", puzzle);
 
 // Error handling
 app.use((err, req, res, next) => {
