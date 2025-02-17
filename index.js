@@ -18,6 +18,7 @@ import levelRoutes from "./routes/level.js";
 import category from "./routes/category.js";
 import quize from "./routes/quize.js";
 import puzzle from "./routes/puzzle.js";
+import quizeQuestion from "./routes/quizeQuestion.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -71,6 +72,7 @@ app.use("/api/level", levelRoutes);
 app.use("/api/category", category);
 app.use("/api/quize", quize);
 app.use("/api/puzzle", puzzle);
+app.use("/api/QandA", quizeQuestion);
 
 // Error handling
 app.use((err, req, res, next) => {
