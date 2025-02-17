@@ -39,7 +39,7 @@ const addPuzzle = async (req, res) => {
         if (newQuiz.affectedRows === 1) {
             return res.status(201).json({ message: "puzzle added successfully" });
         }
-        return res.status(500).json({ message: "Failed to add quiz" });
+        return res.status(500).json({ message: "Failed to add puzzle" });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
@@ -48,13 +48,13 @@ const addPuzzle = async (req, res) => {
 // ✅ Get All puzzles
 const getPuzzles = async (req, res) => {
     try {
-        const query = `SELECT * FROM quizes`;
+        const query = `SELECT * FROM puzzle`;
         const quizzes = await userQuery(query);
 
         if (quizzes.length > 0) {
             return res.status(200).json({ quizzes });
         }
-        return res.status(404).json({ message: "No quizzes found" });
+        return res.status(404).json({ message: "No puzzle found" });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
@@ -64,13 +64,13 @@ const getPuzzles = async (req, res) => {
 const getPuzzleById = async (req, res) => {
     const { id } = req.params;
     try {
-        const query = `SELECT * FROM quizzes WHERE id = ?`;
+        const query = `SELECT * FROM puzzle WHERE id = ?`;
         const quiz = await userQuery(query, [id]);
 
         if (quiz.length > 0) {
             return res.status(200).json({ quiz: quiz[0] });
         }
-        return res.status(404).json({ message: "Quiz not found" });
+        return res.status(404).json({ message: "Puzzle not found" });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
@@ -79,25 +79,33 @@ const getPuzzleById = async (req, res) => {
 // ✅ Update Puzzle
 const updatePuzzle = async (req, res) => {
     const { id } = req.params;
-    const { name, description, type, categories_id } = req.body;
+    const { name, description, categories_id } = req.body;
 
     try {
         // Check if quiz exists
-        const checkQuery = `SELECT * FROM quizzes WHERE id = ?`;
+        const checkQuery = `SELECT * FROM puzzle WHERE id = ?`;
         const quiz = await userQuery(checkQuery, [id]);
 
         if (quiz.length === 0) {
-            return res.status(404).json({ message: "Quiz not found" });
+            return res.status(404).json({ message: "Puzzle not found" });
+        }
+
+        //check if category exists
+        const findCategoryQuery = `SELECT * FROM categories WHERE id = ?`;
+        const existingCategory = await userQuery(findCategoryQuery, [categories_id]);
+
+        if (existingCategory.length === 0) {
+            return res.status(404).json({ message: "Category not found" });
         }
 
         // Update quiz
-        const updateQuery = `UPDATE quizzes SET name = ?, description = ?, type = ?, categories_id = ? WHERE id = ?`;
-        const updatedQuiz = await userQuery(updateQuery, [name, description, type, categories_id, id]);
+        const updateQuery = `UPDATE puzzle SET name = ?, description = ?, categories_id = ? WHERE id = ?`;
+        const updatedQuiz = await userQuery(updateQuery, [name, description, categories_id, id]);
 
         if (updatedQuiz.affectedRows === 1) {
-            return res.status(200).json({ message: "Quiz updated successfully" });
+            return res.status(200).json({ message: "Puzzle updated successfully" });
         }
-        return res.status(500).json({ message: "Failed to update quiz" });
+        return res.status(500).json({ message: "Failed to update puzzle" });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
@@ -108,7 +116,7 @@ const deletePuzzle = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const deleteQuery = `DELETE FROM quizzes WHERE id = ?`;
+        const deleteQuery = `DELETE FROM puzzle WHERE id = ?`;
         const deletedQuiz = await userQuery(deleteQuery, [id]);
 
         if (deletedQuiz.affectedRows === 1) {
