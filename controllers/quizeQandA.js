@@ -27,7 +27,7 @@ const addQuizeQandA = async (req, res) => {
             return res.status(409).json({ message: "Question already exists" });
         }
         
-        // Insert new quiz question
+        // Insert new quizeQandA question
          await userQuery(
             `INSERT INTO quizeQandA (question, options, answer) VALUES (?, ?, ?)`,
             [question, stringfyOptions, answer]
