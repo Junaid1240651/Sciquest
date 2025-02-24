@@ -76,6 +76,31 @@ const getPuzzleById = async (req, res) => {
     }
 };
 
+// ✅ Get Puzzle by Categories ID
+const getPuzzleByCategoriesId = async (req, res) => {
+    const { categories_id } = req.params;
+    try {
+        const query = `SELECT * FROM quizes WHERE categories_id = ?`;
+        const quiz = await userQuery(query, [categories_id]);
+
+        if (quiz.length === 0) {
+            return res.status(404).json({ message: "Categories doesn't exist " });
+        }
+
+        // Get Puzzles by Categories ID
+        const getPuzzleByCategoriesId = `SELECT * FROM puzzle WHERE categories_id = ?`;
+        const puzzles = await userQuery(getPuzzleByCategoriesId, [categories_id]);
+
+        if (puzzles.length > 0) {
+            return res.status(200).json({ puzzles });
+        }
+        return res.status(404).json({ message: "No puzzles found" });
+
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
 // ✅ Update Puzzle
 const updatePuzzle = async (req, res) => {
     const { id } = req.params;
@@ -128,4 +153,4 @@ const deletePuzzle = async (req, res) => {
     }
 };
 
-export default { addPuzzle, getPuzzles, getPuzzleById, updatePuzzle, deletePuzzle };
+export default { addPuzzle, getPuzzles, getPuzzleById, getPuzzleByCategoriesId, updatePuzzle, deletePuzzle };

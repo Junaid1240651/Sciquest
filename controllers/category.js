@@ -65,6 +65,34 @@ const getCategories = async (req, res) => {
     }
 };
 
+// 🚀 **2. Get All Categories**
+const getCategoriesByLevel = async (req, res) => {
+    try {
+        const { level_id } = req.params;
+        // check if level exists
+        console.log(level_id);
+        
+        const findLevelQuery = `SELECT * FROM levels WHERE id = ?`;
+        const existingLevel = await userQuery(findLevelQuery, [level_id]);
+
+        if (existingLevel.length === 0) {
+            return res.status(404).json({ message: "Level not found" });
+        }
+
+        const getCategoriesQuery = `SELECT * FROM categories WHERE level_id = ?`;
+        const categories = await userQuery(getCategoriesQuery, [level_id]);
+
+        if (categories.length > 0) {
+            return res.status(200).json({ categories });
+        }
+        return res.status(404).json({ message: "No categories found" });
+       
+    } catch (error) {
+        console.error("Error fetching categories:", error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+
 // 🚀 **3. Update Category**
 const updateCategory = async (req, res) => {
     try {
@@ -145,4 +173,4 @@ const deleteCategory = async (req, res) => {
 };
 
 // 🔹 **Export APIs**
-export default { addCategory, getCategories, updateCategory, deleteCategory };
+export default { addCategory, getCategories, updateCategory, deleteCategory, getCategoriesByLevel };

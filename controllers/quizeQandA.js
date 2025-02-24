@@ -91,6 +91,38 @@ const getQuizeQuestionById = async (req, res) => {
     }
 }
 
+const getQuizeQandAByQuizeId = async (req, res) => {
+    try {
+        const { quize_id } = req.params;
+
+        // check if quize exists
+        const findQuizeQuery = `SELECT * FROM quizes WHERE id = ?`;
+        const existingQuize = await userQuery(findQuizeQuery, [quize_id]);
+
+        if (existingQuize.length === 0) {
+            return res.status(404).json({ message: "Quize not found" });
+        }
+        const quizeQandA = await userQuery(`SELECT * FROM quizeQandA WHERE quize_id = ?`, [quize_id]);
+        if (quizeQandA.length === 0) {
+            return res.status(404).json({ message: "No quize question found" });
+        }
+        // Convert options string to array
+        quizeQandA.forEach((quize) => {
+            quize.options = JSON.parse(quize.options);
+        });
+        res.status(200).json({
+            status: "success",
+            quizeQandA,
+        });
+    } catch (error) {
+        res.status(400).json({
+            status: "error",
+            error: error.message,
+        });
+        
+    }
+}
+
 const updateQuizeQandA = async (req, res) => {
     const { id } = req.params;
     const { question, options, answer } = req.body;
@@ -143,4 +175,4 @@ const deleteQuizeQandA = async (req, res) => {
         
     }
 }
-export default { addQuizeQandA, getQuizeQandA, getQuizeQuestionById, updateQuizeQandA, deleteQuizeQandA };
+export default { addQuizeQandA, getQuizeQandA, getQuizeQuestionById, getQuizeQandAByQuizeId, updateQuizeQandA, deleteQuizeQandA };

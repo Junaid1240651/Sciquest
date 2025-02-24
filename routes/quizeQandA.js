@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.get('/getQuizeQandA', verifyUser, quizeQandAController.getQuizeQandA);
 router.get('/getQuizeQandA/:id', verifyUser, quizeQandAController.getQuizeQuestionById);
+router.get('/getQuizeQandAByQuizeId/:quize_id', verifyUser, quizeQandAController.getQuizeQandAByQuizeId);
 router.post('/addQandA/:quize_id', verifyUser, quizeQandAController.addQuizeQandA);
 router.patch('/updateQandA/:id', verifyUser, quizeQandAController.updateQuizeQandA);
 router.delete('/deleteQandA/:id', verifyUser, quizeQandAController.deleteQuizeQandA);

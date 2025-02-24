@@ -29,8 +29,8 @@ const addPuzzleQandA = async (req, res) => {
         
         // Insert new puzzleQandA question
          await userQuery(
-            `INSERT INTO puzzleQandA (question, options, answer) VALUES (?, ?, ?)`,
-            [question, stringfyOptions, answer]
+            `INSERT INTO puzzleQandA (question, options, answer, puzzle_id) VALUES (?, ?, ?, ?)`,
+            [question, stringfyOptions, answer, puzzle_id]
         );
 
         res.status(201).json({
@@ -91,6 +91,38 @@ const getPuzzleQandAById = async (req, res) => {
     }
 }
 
+const getPuzzleQandAByPuzzleId = async (req, res) => {
+    try {
+        const { puzzle_id } = req.params;
+        //check if puzzle exists
+        
+        const findPuzzleQuery = `SELECT * FROM puzzle WHERE id = ?`;
+        const existingPuzzzle = await userQuery(findPuzzleQuery, [puzzle_id]);
+
+        if (existingPuzzzle.length === 0) {
+            return res.status(404).json({ message: "Puzzle not found" });
+        }
+
+        const puzzleQandA = await userQuery(`SELECT * FROM puzzleQandA WHERE puzzle_id = ?`, [puzzle_id]);
+        if (puzzleQandA.length === 0) {
+            return res.status(404).json({ message: "Puzzle question not found" });
+        }
+        
+        // Convert options string to array
+        puzzleQandA.forEach((quize) => {
+            quize.options = JSON.parse(quize.options);
+        });
+        res.status(200).json({
+            status: "success",
+            puzzleQandA,
+        });
+    } catch (error) {
+        res.status(400).json({
+            status: "error",
+            error: error.message,
+        });
+    }
+}
 const updatePuzzleQandA = async (req, res) => {
     const { id } = req.params;
     const { question, options, answer } = req.body;
@@ -143,4 +175,4 @@ const deletePuzzleQandA = async (req, res) => {
         
     }
 }
-export default { addPuzzleQandA, getPuzzleQandA, getPuzzleQandAById, updatePuzzleQandA, deletePuzzleQandA };
+export default { addPuzzleQandA, getPuzzleQandA, getPuzzleQandAById, getPuzzleQandAByPuzzleId, updatePuzzleQandA, deletePuzzleQandA };

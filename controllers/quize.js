@@ -76,6 +76,31 @@ const getQuizeById = async (req, res) => {
     }
 };
 
+// ✅ Get Quiz by Categories ID
+const getQuizeByCategoriesId = async (req, res) => {
+    const { categories_id } = req.params;
+    try {
+        const query = `SELECT * FROM quizes WHERE categories_id = ?`;
+        const quiz = await userQuery(query, [categories_id]);
+
+        if(quiz.length === 0) {
+            return res.status(404).json({ message: "Categories doesn't exist " });
+        }
+
+        // Get Quizes by Categories ID
+        const getQuizesByCategoriesId = `SELECT * FROM quizes WHERE categories_id = ?`;
+        const quizzes = await userQuery(getQuizesByCategoriesId, [categories_id]);
+
+        if (quizzes.length > 0) {
+            return res.status(200).json({ quizzes });
+        }
+        return res.status(404).json({ message: "No quizzes found" });
+        
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
 // ✅ Update Quiz
 const updateQuize = async (req, res) => {
     const { id } = req.params;
@@ -126,4 +151,4 @@ const deleteQuize = async (req, res) => {
     }
 };
 
-export default { addQuize, getQuizes, getQuizeById, updateQuize, deleteQuize };
+export default { addQuize, getQuizes, getQuizeById, getQuizeByCategoriesId, updateQuize, deleteQuize };

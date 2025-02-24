@@ -20,6 +20,8 @@ import quize from "./routes/quize.js";
 import puzzle from "./routes/puzzle.js";
 import quizeQandA from "./routes/quizeQandA.js";
 import puzzleQandA from "./routes/puzzleQandA.js";
+import completeQuize from "./routes/completeQuize.js";
+import completePuzzle from "./routes/completePuzzle.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -75,6 +77,8 @@ app.use("/api/quize", quize);
 app.use("/api/puzzle", puzzle);
 app.use("/api/quizeQandA", quizeQandA);
 app.use("/api/puzzleQandA", puzzleQandA);
+app.use("/api/completeQuize", completeQuize);
+app.use("/api/completePuzzle", completePuzzle);
 
 // Error handling
 app.use((err, req, res, next) => {

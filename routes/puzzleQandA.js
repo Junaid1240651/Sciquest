@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.get('/getPuzzleQandA', verifyUser, puzzleQandA.getPuzzleQandA);
 router.get('/getPuzzleQandA/:id', verifyUser, puzzleQandA.getPuzzleQandAById);
+router.get('/getPuzzleQandAByPuzzleId/:puzzle_id', verifyUser, puzzleQandA.getPuzzleQandAByPuzzleId);
 router.post('/addPuzzleQandA/:puzzle_id', verifyUser, puzzleQandA.addPuzzleQandA);
 router.patch('/updatePuzzleQandA/:id', verifyUser, puzzleQandA.updatePuzzleQandA);
 router.delete('/deletePuzzleQandA/:id', verifyUser, puzzleQandA.deletePuzzleQandA);
