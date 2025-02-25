@@ -22,6 +22,8 @@ import quizeQandA from "./routes/quizeQandA.js";
 import puzzleQandA from "./routes/puzzleQandA.js";
 import completeQuize from "./routes/completeQuize.js";
 import completePuzzle from "./routes/completePuzzle.js";
+import score from "./routes/score.js";
+import leaderboard from "./routes/leaderboard.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -79,6 +81,8 @@ app.use("/api/quizeQandA", quizeQandA);
 app.use("/api/puzzleQandA", puzzleQandA);
 app.use("/api/completeQuize", completeQuize);
 app.use("/api/completePuzzle", completePuzzle);
+app.use("/api/score", score);
+app.use("/api/leaderboard", leaderboard);
 
 // Error handling
 app.use((err, req, res, next) => {
