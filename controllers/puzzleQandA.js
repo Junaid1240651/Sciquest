@@ -6,10 +6,11 @@ import userQuery from "../utils/helper/dbHelper.js";
 const addPuzzleQandA = async (req, res) => {
     try {
         const { puzzle_id } = req.params;
-        const { question, options, answer } = req.body;
+        const { question, options, answer, type } = req.body;
 
         // Convert options array to JSON string
-        const stringfyOptions = JSON.stringify(options);
+        const stringfyOptions = JSON.stringify(options || []);
+        const stringfyAnswer = JSON.stringify(answer || []);
 
         //check if puzzle exists
         const findPuzzleQuery = `SELECT * FROM puzzle WHERE id = ?`;
@@ -29,8 +30,8 @@ const addPuzzleQandA = async (req, res) => {
         
         // Insert new puzzleQandA question
          await userQuery(
-            `INSERT INTO puzzleQandA (question, options, answer, puzzle_id) VALUES (?, ?, ?, ?)`,
-            [question, stringfyOptions, answer, puzzle_id]
+            `INSERT INTO puzzleQandA (question, options, answer, puzzle_id, type) VALUES (?, ?, ?, ?, ?)`,
+             [question, stringfyOptions, stringfyAnswer, puzzle_id, type]
         );
 
         res.status(201).json({
@@ -49,86 +50,151 @@ const addPuzzleQandA = async (req, res) => {
 
 const getPuzzleQandA = async (req, res) => {
     try {
-        const puzzleQandA = await userQuery(`SELECT * FROM puzzleQandA`);
+        // Fetch all puzzle questions with level and category details
+        const puzzleQandAQuery = `
+            SELECT 
+                pq.*,
+                l.id AS level_id,
+                l.type AS level_type,
+                c.id AS category_id,
+                c.name AS category_name
+            FROM puzzleQandA pq
+            LEFT JOIN puzzle p ON pq.puzzle_id = p.id
+            LEFT JOIN levels l ON p.level_id = l.id
+            LEFT JOIN categories c ON p.categories_id = c.id`;
+
+        const puzzleQandA = await userQuery(puzzleQandAQuery);
+
         if (puzzleQandA.length === 0) {
-            return res.status(404).json({ message: "No puzzle question found" });
+            return res.status(404).json({ message: "No puzzle questions found" });
         }
-        // Convert options string to array
+
+        // Convert options string to array and include level/category details
         puzzleQandA.forEach((quize) => {
             quize.options = JSON.parse(quize.options);
+            quize.answer = JSON.parse(quize.answer);
         });
-        res.status(200).json({
+
+        return res.status(200).json({
             status: "success",
             puzzleQandA,
         });
-        
+
     } catch (error) {
-        res.status(400).json({
+        return res.status(500).json({
             status: "error",
-            error: error.message,
+            message: error.message,
         });
     }
-}
+};
 
 const getPuzzleQandAById = async (req, res) => {
     try {
         const { id } = req.params;
-        const puzzleQandA = await userQuery(`SELECT * FROM puzzleQandA WHERE id = ?`, [id]);
+
+        // Fetch a specific puzzle question along with level and category details
+        const puzzleQandAQuery = `
+            SELECT 
+                pq.*, 
+                l.id AS level_id,
+                l.type AS level_type,
+                c.id AS category_id,
+                c.name AS category_name
+            FROM puzzleQandA pq
+            LEFT JOIN puzzle p ON pq.puzzle_id = p.id
+            LEFT JOIN levels l ON p.level_id = l.id
+            LEFT JOIN categories c ON p.categories_id = c.id
+            WHERE pq.id = ?`;
+
+        const puzzleQandA = await userQuery(puzzleQandAQuery, [id]);
+
         if (puzzleQandA.length === 0) {
             return res.status(404).json({ message: "Puzzle question not found" });
         }
+
         // Convert options string to array
         puzzleQandA[0].options = JSON.parse(puzzleQandA[0].options);
-        res.status(200).json({
+        puzzleQandA[0].answer = JSON.parse(puzzleQandA[0].answer);
+
+        return res.status(200).json({
             status: "success",
             puzzleQandA: puzzleQandA[0],
         });
-    } catch {
-        res.status(400).json({
+
+    } catch (error) {
+        return res.status(500).json({
             status: "error",
-            error: error.message,
+            message: error.message,
         });
     }
-}
+};
 
 const getPuzzleQandAByPuzzleId = async (req, res) => {
     try {
         const { puzzle_id } = req.params;
-        //check if puzzle exists
-        
-        const findPuzzleQuery = `SELECT * FROM puzzle WHERE id = ?`;
-        const existingPuzzzle = await userQuery(findPuzzleQuery, [puzzle_id]);
 
-        if (existingPuzzzle.length === 0) {
+        // Check if puzzle exists and get its details (including level_id & categories_id)
+        const findPuzzleQuery = `
+            SELECT p.*, l.type AS level_type, c.name AS category_name 
+            FROM puzzle p
+            LEFT JOIN levels l ON p.level_id = l.id
+            LEFT JOIN categories c ON p.categories_id = c.id
+            WHERE p.id = ?`;
+
+        const existingPuzzle = await userQuery(findPuzzleQuery, [puzzle_id]);
+
+        if (existingPuzzle.length === 0) {
             return res.status(404).json({ message: "Puzzle not found" });
         }
 
-        const puzzleQandA = await userQuery(`SELECT * FROM puzzleQandA WHERE puzzle_id = ?`, [puzzle_id]);
+        const { level_type, category_name, level_id, categories_id } = existingPuzzle[0];
+
+        // Get puzzle questions along with attempt & answer from complete_puzzle
+        const puzzleQandAQuery = `
+            SELECT 
+                pq.*, 
+                COALESCE(cp.attempt, 0) AS attempt,
+                COALESCE(cp.answer, 0) AS correct_answer
+            FROM puzzleQandA pq
+            LEFT JOIN complete_puzzle cp ON pq.id = cp.puzzleQandA_id
+            WHERE pq.puzzle_id = ?`;
+
+        const puzzleQandA = await userQuery(puzzleQandAQuery, [puzzle_id]);
+
         if (puzzleQandA.length === 0) {
-            return res.status(404).json({ message: "Puzzle question not found" });
+            return res.status(404).json({ message: "No puzzle questions found" });
         }
-        
-        // Convert options string to array
-        puzzleQandA.forEach((quize) => {
-            quize.options = JSON.parse(quize.options);
+
+        // Convert options string to array and add level_type & category_name to each question
+        puzzleQandA.forEach((puzzle) => {
+            puzzle.options = JSON.parse(puzzle.options);
+            puzzle.level_id = level_id; // Add level ID
+            puzzle.level_type = level_type;   // Add level type to each question
+            puzzle.category_name = category_name; // Add category name to each question
+            puzzle.categories_id = categories_id; // Add category ID
+            puzzle.answer = JSON.parse(puzzle.answer);
         });
-        res.status(200).json({
+
+        return res.status(200).json({
             status: "success",
-            puzzleQandA,
+            puzzleQandA, // All questions now include level_type and category_name
         });
+
     } catch (error) {
-        res.status(400).json({
+        return res.status(500).json({
             status: "error",
-            error: error.message,
+            message: error.message,
         });
     }
-}
+};
+
 const updatePuzzleQandA = async (req, res) => {
     const { id } = req.params;
-    const { question, options, answer } = req.body;
+    const { question, options, answer, type } = req.body;
 
     // Convert options array to JSON string
-    const stringfyOptions = JSON.stringify(options);
+    const stringfyOptions = JSON.stringify(options || []);
+    const stringfyAnswer = JSON.stringify(answer || []);
     try {
         //check if question exists
         const checkQuery = `SELECT * FROM puzzleQandA WHERE id = ?`;
@@ -140,8 +206,8 @@ const updatePuzzleQandA = async (req, res) => {
 
         // Update quiz question
         await userQuery(
-            `UPDATE puzzleQandA SET question = ?, options = ?, answer = ? WHERE id = ?`,
-            [question, stringfyOptions, answer, id]
+            `UPDATE puzzleQandA SET question = ?, options = ?, answer = ?, type = ? WHERE id = ?`,
+            [question, stringfyOptions, answer, type, id]
         );
         res.status(200).json({
             status: "success",

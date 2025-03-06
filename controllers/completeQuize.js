@@ -6,7 +6,7 @@ import userQuery from "../utils/helper/dbHelper.js";
 const addCompleteQuize = async (req, res) => {
     try {
         const { userId } = req.user;
-        const { quize_id, quizeQandA_id, categories_id, level_id } = req.body;
+        const { quize_id, quizeQandA_id, categories_id, level_id, attempt, answer } = req.body;
 
         // Validate inputs
         if (!userId || !quize_id || !quizeQandA_id || !categories_id || !level_id ) {
@@ -52,10 +52,10 @@ const addCompleteQuize = async (req, res) => {
 
         // Insert new completeQuize
         const insertCompleteQuizeQuery = `
-            INSERT INTO complete_quize (quize_id, userId, quizeQandA_id, categories_id, level_id)
-            VALUES (?, ?, ?, ?, ?)`;
+            INSERT INTO complete_quize (quize_id, userId, quizeQandA_id, categories_id, level_id, attempt, answer)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`;
 
-        await userQuery(insertCompleteQuizeQuery, [quize_id, userId, quizeQandA_id, categories_id, level_id]);
+        await userQuery(insertCompleteQuizeQuery, [quize_id, userId, quizeQandA_id, categories_id, level_id, attempt, answer]);
         
         res.status(201).json({ message: "Complete quize added successfully" });
 
@@ -108,7 +108,7 @@ const updateCompleteQuize = async (req, res) => {
     try {
         const { id } = req.params;
         const { userId } = req.user;
-        const { quize_id, quizeQandA_id, categories_id, level_id } = req.body;
+        const { quize_id, quizeQandA_id, categories_id, level_id, attempt, answer  } = req.body;
 
         // Validate inputs
         if (!id) {
@@ -150,8 +150,10 @@ const updateCompleteQuize = async (req, res) => {
 
         // Update completeQuize
         await userQuery(
-            `UPDATE complete_quize SET quize_id = ?, userId = ?, quizeQandA_id = ?, categories_id = ?, level_id = ? WHERE id = ?`,
-            [quize_id, userId, quizeQandA_id, categories_id, level_id, id]
+            `UPDATE complete_quize 
+             SET quize_id = ?, userId = ?, quizeQandA_id = ?, categories_id = ?, level_id = ?, attempt = ?, answer = ? 
+             WHERE id = ?`,
+            [quize_id, userId, quizeQandA_id, categories_id, level_id, attempt, answer, id] // Corrected order
         );
         
         res.status(200).json({
