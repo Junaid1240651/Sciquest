@@ -47,19 +47,19 @@ const signup = async (req, res) => {
     }
 
     // Generate OTP
-    const otp = crypto.randomInt(100000, 999999).toString();
+    // const otp = crypto.randomInt(100000, 999999).toString();
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Save the OTP and timestamp in the database
-    const otpTimestamp = new Date().toISOString().slice(0, 19).replace("T", " ");
+    // const otpTimestamp = new Date().toISOString().slice(0, 19).replace("T", " ");
 
     // Save user details in the database without OTP
     await userQuery(
       `
       INSERT INTO users 
-        (first_name, last_name, email, username, password, mobile_number, social_login_type, profile_picture, country, user_type, status, otp, otpTimestamp)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+        (first_name, last_name, email, username, password, mobile_number, social_login_type, profile_picture, country, user_type, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
       `,
       [
         first_name,
@@ -72,27 +72,48 @@ const signup = async (req, res) => {
         profile_picture,
         country,
         user_type,
-        otp,
-        otpTimestamp,
+        // otp,
+        // otpTimestamp,
         profile_description
       ]
     );
 
-    // Send OTP via email
-    const mailOptions = {
-      from: "Sciquest",
-      to: email,
-      subject: "Sciquest OTP ",
-      html: getHtmlContent(otp, first_name, last_name, 'Signup'),
-    };
+    // Generate a JWT token
+    const userRecord = await userQuery(`SELECT * FROM users WHERE email = ?`, [email]);
+    const token = jwt.sign(
+      { userId: userRecord[0].id, userType: userRecord[0].user_type },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
-    transporter.sendMail(mailOptions, (err, info) => {
-      if (err) {
-        console.error("Error sending OTP email:", err);
-        return res.status(500).json({ message: "Error sending OTP email" });
-      }
-      res.status(200).json({ message: "OTP sent to your email" });
+    // Set the JWT token as a cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 3600000, // 1 hour expiration for the cookie
     });
+
+    res.status(200).json({
+      message: "User successfully verified and registered",
+      user: { id: userRecord[0].id, email: userRecord[0].email, username: userRecord[0].username, mobile_number: userRecord[0].mobile_number },
+      token: token,
+    });
+
+    // // Send OTP via email
+    // const mailOptions = {
+    //   from: "Sciquest",
+    //   to: email,
+    //   subject: "Sciquest OTP ",
+    //   html: getHtmlContent(otp, first_name, last_name, 'Signup'),
+    // };
+
+    // transporter.sendMail(mailOptions, (err, info) => {
+    //   if (err) {
+    //     console.error("Error sending OTP email:", err);
+    //     return res.status(500).json({ message: "Error sending OTP email" });
+    //   }
+    //   res.status(200).json({ message: "OTP sent to your email" });
+    // });
   } catch (err) {
     console.error("Error during signup OTP:", err);
     res.status(500).json({ message: "Error while processing signup" });
@@ -232,43 +253,12 @@ const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid password" });
     }
 
-    // Check if user account is active
-    if (user.status !== "active") {
-      // Generate OTP
-      const otp = crypto.randomInt(100000, 999999).toString();
-
-      // Save the OTP and timestamp in the database
-      const otpTimestamp = new Date().toISOString().slice(0, 19).replace("T", " ");
-
-      // replace the OTP and timestamp in the database
-
-      const updateOtpQuery = `UPDATE users SET otp = ?, otpTimestamp = ? WHERE id = ?`;
-      await userQuery(updateOtpQuery, [otp, otpTimestamp, user.id]);
-
-      // Send OTP via email
-      const mailOptions = {
-        from: "Global Home Remedies",
-        to: user.email,
-        subject: "Global Home Remedies OTP ",
-        html: getHtmlContent(otp,user.first_name,user.last_name, 'Login'),
-      };
-
-      await transporter.sendMail(mailOptions);
-      return res.status(200).json({ message: "OTP sent to your email" });
-    }
-
+    // Generate a JWT token
     const token = jwt.sign(
       { userId: userResults[0].id, userType: userResults[0].user_type },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
-
-    // Generate a JWT token
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 3600000, // 1 hour expiration for the cookie
-    });
 
     // Set the JWT token as a session cookie
     res.cookie("token", token, {
@@ -758,6 +748,52 @@ const googleAuthSignUp = async (req, res) => {
 
 };
 
+const changePassword = async (req, res) => {
+  const { oldPassword, newPassword, email } = req.body;
+
+  if (!oldPassword || !newPassword || !email) {
+    return res
+      .status(400)
+      .json({ message: "Old password and new password are required." });
+  }
+
+  try {
+    // Fetch the user data
+    const userResults = await userQuery(
+      `SELECT * FROM users WHERE email = ?`,
+      [email]
+    );
+
+    if (userResults.length === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const user = userResults[0];
+
+    // Compare the provided password with the stored hashed password
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Invalid old password" });
+    }
+
+    // Update the password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await userQuery(
+      `UPDATE users SET password = ? WHERE email = ?`,
+      [hashedPassword, email]
+    );
+
+    res.status(200).json({ message: "Password updated successfully." });
+  } catch (error) {
+    res
+      .status(500)
+      .json({
+        message: "Database error while updating password",
+        details: error,
+      });
+  }
+};
+
 export default {
   signup,
   login,
@@ -768,6 +804,7 @@ export default {
   resetPassword,
   verifyOtpAndCompleteSignup,
   googleAuthSignUp,
-  resentOTP
+  resentOTP,
+  changePassword
 };
 
