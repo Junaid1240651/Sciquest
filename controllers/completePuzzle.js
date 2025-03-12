@@ -6,10 +6,11 @@ import userQuery from "../utils/helper/dbHelper.js";
 const addCompletePuzzle = async (req, res) => {
     try {
         const { userId } = req.user;
-        const { puzzle_id, puzzleQandA_id, categories_id, level_id } = req.body;
+        let score = 0;
+        const { puzzle_id, puzzleQandA_id, categories_id, level_id, attempt, answer } = req.body;
 
         // Validate inputs
-        if (!userId || !puzzle_id || !puzzleQandA_id || !categories_id || !level_id ) {
+        if (!userId || !puzzle_id || !puzzleQandA_id || !categories_id || !level_id) {
             return res.status(400).json({ message: "All fields are required" });
         }
 
@@ -34,6 +35,9 @@ const addCompletePuzzle = async (req, res) => {
         const findLevelQuery = `SELECT * FROM levels WHERE id = ?`;
         const existingLevel = await userQuery(findLevelQuery, [level_id]);
 
+        const findLeaderboardQuery = `SELECT * FROM leaderboard WHERE userId = ?`;
+        const existingLeaderboard = await userQuery(findLeaderboardQuery, [userId]);
+
         if (existingPuzzleQandA.length === 0) {
             return res.status(404).json({ message: "Puzzle QandA not found" });
         }
@@ -49,12 +53,30 @@ const addCompletePuzzle = async (req, res) => {
         if (existingLevel.length === 0) {
             return res.status(404).json({ message: "Level not found" });
         }
+
+        if (answer === true) {
+            score = existingLevel[0].score;
+        }
+
         // Insert new completePuzzle
         const insertCompletePuzzleQuery = `
-            INSERT INTO complete_puzzle (puzzle_id, userId, puzzleQandA_id, categories_id, level_id)
-            VALUES (?, ?, ?, ?, ?)`;
+            INSERT INTO complete_puzzle (puzzle_id, userId, puzzleQandA_id, categories_id, level_id, attempt, answer, score)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
-        await userQuery(insertCompletePuzzleQuery, [puzzle_id, userId, puzzleQandA_id, categories_id, level_id]);
+        await userQuery(insertCompletePuzzleQuery, [puzzle_id, userId, puzzleQandA_id, categories_id, level_id, attempt, answer, score]);
+
+        // Insert total score in leaderboard
+        if (existingLeaderboard.length > 0) {
+            await userQuery(
+                `UPDATE leaderboard SET total_score = ? WHERE userId = ?`,
+                [score + existingLeaderboard[0].total_score, userId]
+            );
+        } else {
+            await userQuery(
+                `INSERT INTO leaderboard (userId, total_score) VALUES (?, ?)`,
+                [userId, score]
+            );
+        }
         
         res.status(201).json({ message: "Complete puzzle added successfully" });
 
@@ -106,7 +128,18 @@ const getCompletePuzzleByUserId = async (req, res) => {
 const updateCompletePuzzle = async (req, res) => {
     try {
         const { id } = req.params;
-        const { puzzle_id, puzzleQandA_id, categories_id, level_id } = req.body;
+        const { userId } = req.user;
+        let score = 0;
+        const { puzzle_id, puzzleQandA_id, categories_id, level_id, attempt, answer } = req.body;
+
+        // Validate inputs
+        if (!id) {
+            return res.status(400).json({ message: "ID is required" });
+        }
+
+        if (!puzzle_id || !puzzleQandA_id || !categories_id || !level_id || !userId) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
 
         // Check if the completePuzzle exists
         const findCompletePuzzleQuery = `SELECT * FROM complete_puzzle WHERE id = ?`;
@@ -129,6 +162,9 @@ const updateCompletePuzzle = async (req, res) => {
         const findLevelQuery = `SELECT * FROM levels WHERE id = ?`;
         const existingLevel = await userQuery(findLevelQuery, [level_id]);
 
+        const findLeaderboardQuery = `SELECT * FROM leaderboard WHERE userId = ?`;
+        const existingLeaderboard = await userQuery(findLeaderboardQuery, [userId]);
+
         if (existingPuzzleQandA.length === 0) {
             return res.status(404).json({ message: "Puzzle QandA not found" });
         }
@@ -145,12 +181,35 @@ const updateCompletePuzzle = async (req, res) => {
             return res.status(404).json({ message: "Level not found" });
         }
 
+        if (answer === true) {
+            score = existingLevel[0].score;
+        }
+
         // Update completePuzzle
         await userQuery(
-            `UPDATE complete_puzzle SET puzzle_id = ?, puzzleQandA_id = ?, categories_id = ?, level_id = ? WHERE id = ?`,
-            [puzzle_id, puzzleQandA_id, categories_id, level_id, id]
+            `UPDATE complete_puzzle SET puzzle_id = ?, puzzleQandA_id = ?, categories_id = ?, level_id = ?, attempt = ?, answer = ?, score = ?  WHERE id = ?`,
+            [puzzle_id, puzzleQandA_id, categories_id, level_id, attempt, answer, score, id]
         );
 
+        // Get the old score from the existing complete puzzle
+        const oldScore = existingCompletePuzzle[0].score;
+        let newScore;
+
+        // Update total score in leaderboard
+
+        if (existingLeaderboard.length > 0) {
+            newScore = existingLeaderboard[0].total_score - oldScore + score;
+            await userQuery(
+                `UPDATE leaderboard SET total_score = ? WHERE userId = ?`,
+                [newScore, userId]
+            );
+        } else {
+            await userQuery(
+                `INSERT INTO leaderboard (userId, total_score) VALUES (?, ?)`,
+                [userId, score]
+            );
+        }
+        
         res.status(200).json({
             status: "success",
             message: "Complete Puzzle updated successfully"

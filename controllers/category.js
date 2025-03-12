@@ -70,7 +70,6 @@ const getCategoriesByLevel = async (req, res) => {
     try {
         const { level_id } = req.params;
         // check if level exists
-        console.log(level_id);
         
         const findLevelQuery = `SELECT * FROM levels WHERE id = ?`;
         const existingLevel = await userQuery(findLevelQuery, [level_id]);

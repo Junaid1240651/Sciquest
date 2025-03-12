@@ -5,35 +5,48 @@ import userQuery from "../utils/helper/dbHelper.js";
 
 const getTopLeaderboardScore = async (req, res) => {
     try {
+        // Fetch top 10 leaderboard scores
         const getTopLeaderboardScoreQuery = `SELECT * FROM leaderboard ORDER BY total_score DESC LIMIT 10`;
         const topLeaderboardScore = await userQuery(getTopLeaderboardScoreQuery);
+
+        console.log(topLeaderboardScore.length);
+
+        // Fetch user info for all users in parallel
+        const userIds = topLeaderboardScore.map(entry => entry.userId);
+        console.log(userIds);
+
+        if (userIds.length === 0) {
+            return res.status(200).json({ topLeaderboardScore: [] });
+        }
+
+        const getUserInfoQuery = `
+            SELECT id, username, first_name, last_name, email, mobile_number, profile_picture 
+            FROM users WHERE id IN (${userIds.map(() => '?').join(',')})
+        `;
+        const userInfoList = await userQuery(getUserInfoQuery, userIds);
+
+        // Correct user lookup map (using userId as key)
+        const userInfoMap = Object.fromEntries(
+            userInfoList.map(user => [user.id, user])
+        );
+
+        console.log(userInfoMap);
+
+        // Attach user details to leaderboard data
+        topLeaderboardScore.forEach(entry => {
+            const userInfo = userInfoMap[entry.userId] || {}; // Default to empty object if user not found
+            entry.username = userInfo.username || "Unknown User";
+            entry.first_name = userInfo.first_name || "Unknown User";
+            entry.last_name = userInfo.last_name || "Unknown User";
+            entry.email = userInfo.email || "Unknown User";
+            entry.mobile_number = userInfo.mobile_number || "Unknown User";
+            entry.profile_picture = userInfo.profile_picture || "Unknown User";
+        });
+
         res.status(200).json({ topLeaderboardScore });
     } catch (error) {
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
-}
+};
 
-const deleteLeaderboardScore = async (req, res) => {
-    try {
-        const userId = req.user.userId;
-        const { id } = req.params;
-
-        //check if record exists
-        const checkQuery = `SELECT * FROM leaderboard WHERE id = ?`;
-        const existingScore = await userQuery(checkQuery, [id]);
-
-        if (existingScore.length === 0) {
-            return res.status(404).json({ message: "Leaderboard score not found" });
-        }
-        //delete score from leaderboard table
-        await userQuery(`DELETE FROM leaderboard WHERE id = ?`, [id]);
-
-        //delete score from scores table
-        await userQuery(`DELETE FROM scores WHERE user_id = ?`, [userId]);
-        res.status(200).json({ message: "Leaderboard score deleted successfully" });
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error" });
-    }
-}
-
-export default { getTopLeaderboardScore, deleteLeaderboardScore };
+export default { getTopLeaderboardScore };

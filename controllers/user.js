@@ -433,6 +433,14 @@ const getProfile = async (req, res) => {
       "SELECT id, first_name, last_name, email, username, mobile_number, social_login_type, profile_picture, country, status, profile_description, created_at, updated_at FROM users WHERE id = ?";
     const user = await userQuery(query, [userId]);
 
+    // fetch user score if avilable in leaderboard otherwise set it to 0  
+    const userScore = await userQuery(`SELECT total_score FROM leaderboard WHERE userId = ?`, [userId]);
+    if (userScore.length > 0) {
+      user[0].total_score = userScore[0].total_score;
+    } else {
+      user[0].score = 0;
+    }
+
     if (user.length === 0) {
       return res.status(404).json({ message: "User not found." });
     }
