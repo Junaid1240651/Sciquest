@@ -161,11 +161,12 @@ const getQuizeQandAByQuizeId = async (req, res) => {
             SELECT 
                 q.*, 
                 q.answer AS correct_answer,
-                COALESCE(cq.attempt, 0) AS attempt,
-                COALESCE(cq.answer, 0) AS correct_answer
+                COALESCE(MAX(cq.attempt), 0) AS attempt, 
+                COALESCE(MAX(cq.answer), 0) AS correct_answer
             FROM quizeQandA q
             LEFT JOIN complete_quize cq ON q.id = cq.quizeQandA_id
-            WHERE q.quize_id = ?`;
+            WHERE q.quize_id = ?
+            GROUP BY q.id`;
 
         const quizeQandA = await userQuery(quizeQandAQuery, [quize_id]);
 

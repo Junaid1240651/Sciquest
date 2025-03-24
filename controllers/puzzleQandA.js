@@ -153,11 +153,12 @@ const getPuzzleQandAByPuzzleId = async (req, res) => {
         const puzzleQandAQuery = `
             SELECT 
                 pq.*, 
-                COALESCE(cp.attempt, 0) AS attempt,
-                COALESCE(cp.answer, 0) AS correct_answer
+                COALESCE(MAX(cp.attempt), 0) AS attempt, 
+                COALESCE(MAX(cp.answer), 0) AS correct_answer
             FROM puzzleQandA pq
             LEFT JOIN complete_puzzle cp ON pq.id = cp.puzzleQandA_id
-            WHERE pq.puzzle_id = ?`;
+            WHERE pq.puzzle_id = ?
+            GROUP BY pq.id`;
 
         const puzzleQandA = await userQuery(puzzleQandAQuery, [puzzle_id]);
 
